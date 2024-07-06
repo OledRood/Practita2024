@@ -1,5 +1,4 @@
-# код в ссылке https://gist.github.com/fuwiak/9c695b51c33b2e052c5a721383705a9c
-# код с ссылки запускаем так(BASH) python3 hh_parser.py
+
 import json
 
 import requests
@@ -51,7 +50,6 @@ def parcing(response_from_front):
     url = 'https://api.hh.ru/vacancies'
     df_parcing = pd.DataFrame(columns=dict_keys)
     for i in range(pages):
-        print(i)
         par = {'text': response_from_front["text"], 'area': '113', 'per_page': '10', 'page': i}
         r = requests.get(url, params=par)
         response = r.json()
@@ -64,7 +62,6 @@ def parcing(response_from_front):
                     ind += 1
         except:
             print('Error')
-    print("PARCING GOOD:", df_parcing.shape[0])
     df_parcing = add_key_to_front(df=df_parcing, response_from_front=response_from_front)
     return preparate_data(df_parcing)
 
