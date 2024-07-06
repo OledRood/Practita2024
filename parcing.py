@@ -39,7 +39,7 @@ def add_key_to_front(df,response_from_front):
 
 
 def parcing(response_from_front):
-    pages = 20
+    pages = 200
     dict_keys = ['id', 'premium', 'name', 'department', 'has_test', 'response_letter_required', 'area', 'salary',
                  'type', 'address', 'response_url', 'sort_point_distance', 'published_at', 'created_at', 'archived',
                  'apply_alternate_url', 'show_logo_in_search', 'insider_interview', 'url', 'alternate_url', 'relations',
