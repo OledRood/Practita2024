@@ -7,9 +7,9 @@ part of 'salary.dart';
 // **************************************************************************
 
 Salary _$SalaryFromJson(Map<String, dynamic> json) => Salary(
-      from: (json['from'] as num?)?.toInt(),
-      to: (json['to'] as num?)?.toInt(),
-      currency: json['currency'] as String,
+      (json['from'] as num?)?.toInt(),
+      (json['to'] as num?)?.toInt(),
+      json['currency'] as String,
     );
 
 Map<String, dynamic> _$SalaryToJson(Salary instance) => <String, dynamic>{

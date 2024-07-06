@@ -7,10 +7,10 @@ part of 'parameters.dart';
 // **************************************************************************
 
 Parameters _$ParametersFromJson(Map<String, dynamic> json) => Parameters(
-      salary: Salary.fromJson(json['salary'] as String),
+      salary: Salary.fromJson(json['salary'] as Map<String, dynamic>),
       name: json['name'] as String,
       id: (json['id'] as num).toInt(),
-      area: Area.fromJson(json['area'] as String),
+      area: Area.fromJson(json['area'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ParametersToJson(Parameters instance) =>

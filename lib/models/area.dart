@@ -8,23 +8,19 @@ part 'area.g.dart';
 @JsonSerializable()
 class Area {
   final String id;
+  final String name;
 
-  Area({required this.id});
+  Area(this.name, {required this.id});
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
+      'name': name,
     };
   }
 
-  factory Area.fromMap(Map<String, dynamic> map) {
-    return Area(
-      id: map['id'] as String,
-    );
-  }
+  factory Area.fromJson(final Map<String, dynamic> json) =>
+      _$AreaFromJson(json);
 
-  String toJson() => json.encode(toMap());
-
-  factory Area.fromJson(String source) =>
-      Area.fromMap(json.decode(source) as Map<String, dynamic>);
+  Map<String, dynamic> toJson() => _$AreaToJson(this);
 }

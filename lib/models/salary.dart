@@ -9,30 +9,9 @@ class Salary {
   final int? to;
   final String currency;
 
-  Salary({
-    required this.from,
-    required this.to,
-    required this.currency,
-  });
+  Salary(this.from, this.to, this.currency);
+  factory Salary.fromJson(final Map<String, dynamic> json) =>
+      _$SalaryFromJson(json);
 
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'from': from,
-      'to': to,
-      'currency': currency,
-    };
-  }
-
-  factory Salary.fromMap(Map<String, dynamic> map) {
-    return Salary(
-      from: map['from'] != null ? map['from'] as int : null,
-      to: map['to'] != null ? map['to'] as int : null,
-      currency: map['currency'] as String,
-    );
-  }
-
-  String toJson() => json.encode(toMap());
-
-  factory Salary.fromJson(String source) =>
-      Salary.fromMap(json.decode(source) as Map<String, dynamic>);
+  Map<String, dynamic> toJson() => _$SalaryToJson(this);
 }

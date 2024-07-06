@@ -5,6 +5,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:web/models/area.dart';
 import 'package:web/models/parameters.dart';
 import 'package:web/models/salary.dart';
 import 'package:web/pages/second_page.dart';
@@ -31,12 +32,28 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Provider.value(
-        value: bloc,
-        child: StreamBuilder<Object>(
+    return Provider.value(value: bloc, child: PageContent());
+  }
+}
+
+class PageContent extends StatelessWidget {
+  const PageContent({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
+    // bloc.updateText("flutter");
+
+    return Scaffold(
+        backgroundColor: AppColors.color900,
+        body: StreamBuilder(
             stream: bloc.observePageState(),
             builder: (context, snapshot) {
-              switch (snapshot.data!) {
+              final PageStateNumber number =
+                  snapshot.data ?? PageStateNumber.first;
+              switch (number) {
                 case PageStateNumber.first:
                   return FirstPage();
                 case PageStateNumber.second:
@@ -59,34 +76,31 @@ class _FirstPageState extends State<FirstPage> {
   bool open = false;
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.color900,
-      body: Column(
-        children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-                padding: EdgeInsets.only(top: 20, left: 50, right: 50),
-                child: AppWidget(
-                    onTap: () {
-                      setState(() {
-                        open = !open;
-                        print(open);
-                      });
-                    },
-                    open: open,
-                    heigthAppBar: heigthAppBar)),
-          ),
-          const SizedBox(
-            height: 15,
-          ),
-          if (open) FiltersWidget(),
-          const SizedBox(
-            height: 25,
-          ),
-          ListContent(),
-        ],
-      ),
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+              padding: EdgeInsets.only(top: 20, left: 50, right: 50),
+              child: AppWidget(
+                  onTap: () {
+                    setState(() {
+                      open = !open;
+                      print(open);
+                    });
+                  },
+                  open: open,
+                  heigthAppBar: heigthAppBar)),
+        ),
+        const SizedBox(
+          height: 15,
+        ),
+        FiltersWidget(open: open),
+        const SizedBox(
+          height: 25,
+        ),
+        ListContent(),
+      ],
     );
   }
 }
@@ -132,7 +146,11 @@ class AppWidget extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         GestureDetector(
-          onTap: () => bloc.pageSubject.add(PageStateNumber.second),
+          onTap: () {
+            bloc.searchSubscriprion?.cancel();
+            bloc.pageSubject.add(PageStateNumber.second);
+            bloc.stateSubject.add(ListWidgetState.nothing);
+          },
           child: Container(
             height: heigthAppBar,
             width: 60,
@@ -152,8 +170,10 @@ class AppWidget extends StatelessWidget {
 }
 
 class FiltersWidget extends StatefulWidget {
+  final bool open;
   const FiltersWidget({
     super.key,
+    required this.open,
   });
 
   @override
@@ -161,41 +181,68 @@ class FiltersWidget extends StatefulWidget {
 }
 
 class _FiltersWidgetState extends State<FiltersWidget> {
+  final fromSalaryController = TextEditingController();
+  final toSalaryController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-          color: AppColors.color800, borderRadius: BorderRadius.circular(30)),
-      height: 150,
-      margin: const EdgeInsets.only(left: 120, right: 120),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              NameItemWidget(
-                text: "Name",
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              Row(
-                children: [
-                  RegionItemWidget(),
-                  SizedBox(
-                    width: 80,
-                  ),
-                  SalaryItemWidget()
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
+
+    if (widget.open) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+            color: AppColors.color800, borderRadius: BorderRadius.circular(30)),
+        height: 150,
+        margin: const EdgeInsets.only(left: 120, right: 120),
+        child: Stack(
+          children: [
+            Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    NameItemWidget(
+                      text: "Name",
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Row(
+                      children: [
+                        RegionItemWidget(),
+                        SizedBox(
+                          width: 80,
+                        ),
+                        SalaryItemWidget()
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // Align(
+            //   alignment: Alignment.bottomRight,
+            //   child: Padding(
+            //     padding: const EdgeInsets.only(right: 10),
+            //     child: Text('if closed – the filters will be reset',
+            //         style: TextStyle(
+            //             fontSize: 10,
+            //             color: AppColors.color400,
+            //             fontWeight: FontWeight.w900)),
+            //   ),
+            // )
+          ],
+        ),
+      );
+    } else {
+      bloc.nameControllerSubject.add('');
+      bloc.regionControllerSubject.add('');
+      bloc.salaryControllerSubject.add('');
+      return const SizedBox.shrink();
+    }
   }
 }
 
@@ -209,9 +256,9 @@ class SalaryItemWidget extends StatefulWidget {
 }
 
 class _SalaryItemWidgetState extends State<SalaryItemWidget> {
+  var salaryCheck = false;
   final fromSalaryController = TextEditingController();
   final toSalaryController = TextEditingController();
-  bool salaryCheck = false;
 
   @override
   Widget build(BuildContext context) {
@@ -241,10 +288,15 @@ class _SalaryItemWidgetState extends State<SalaryItemWidget> {
               child: TextField(
                 style: TextStyle(fontSize: 15, color: AppColors.color100),
                 controller: fromSalaryController,
+                onChanged: (value) {
+                  setState(() {
+                    salaryCheck = false;
+                  });
+                },
                 onSubmitted: (value) {
                   setState(() {
                     salaryCheck = true;
-                    bloc.nameControllerSubject.add(
+                    bloc.salaryControllerSubject.add(
                         "${fromSalaryController.text},${toSalaryController.text}");
                     if (value == '') salaryCheck = false;
                   });
@@ -307,9 +359,9 @@ class _SalaryItemWidgetState extends State<SalaryItemWidget> {
               setState(() {
                 salaryCheck = !salaryCheck;
                 salaryCheck
-                    ? bloc.nameControllerSubject.add(
+                    ? bloc.salaryControllerSubject.add(
                         "${fromSalaryController.text},${toSalaryController.text}")
-                    : bloc.nameControllerSubject.add('');
+                    : bloc.salaryControllerSubject.add('');
               });
             },
             child: Container(
@@ -573,7 +625,9 @@ class ListContent extends StatelessWidget {
     return StreamBuilder<ListWidgetState>(
         stream: bloc.observeListWidgetState(),
         builder: (context, snapshot) {
-          switch (snapshot.data!) {
+          final ListWidgetState state =
+              snapshot.data ?? ListWidgetState.nothing;
+          switch (state) {
             case ListWidgetState.list:
               return Expanded(child: ListWidget(bloc: bloc));
             case ListWidgetState.nothing:
@@ -625,6 +679,7 @@ class ListWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 50),
                 child: ItemWidget(content: content),
               );
+              // }
             },
             separatorBuilder: (BuildContext context, int index) {
               return SizedBox(
@@ -643,23 +698,88 @@ class ItemWidget extends StatelessWidget {
   });
 
   final content;
+  final double title = 20;
+  final double textFontSize = 19;
 
   @override
   Widget build(BuildContext context) {
+    final salaryFrom =
+        content.salary.from == null ? "___" : "${content.salary.from}";
+    final salaryTo =
+        content.salary.to == null ? "___ " : "${content.salary.to}";
+    final region = content.area.id == null ? " " : "${content.area.name}";
+
     return Container(
+      padding: EdgeInsets.all(10),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
           color: AppColors.color500, borderRadius: BorderRadius.circular(20)),
-      height: 80,
-      child: Column(
+      height: 120,
+      child: Row(
         children: [
-          Text(
-            content.name,
-            style: TextStyle(color: Colors.white),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                content.name,
+                style: TextStyle(color: AppColors.color100, fontSize: title),
+              ),
+              const Expanded(
+                child: SizedBox(),
+              ),
+              TextWidget(
+                text: 'Region: $region',
+                textFontSize: textFontSize,
+              ),
+            ],
           ),
-          Text(content.salary.from == null ? " " : "${content.salary.from}"),
-          Text(content.area.id == null ? " " : "${content.area.id}"),
+          Expanded(child: SizedBox()),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Column(
+                    children: [
+                      TextWidget(
+                        text: "Salary",
+                        textFontSize: textFontSize,
+                      )
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextWidget(
+                        text: "from: $salaryFrom",
+                        textFontSize: textFontSize,
+                      ),
+                      TextWidget(
+                          text: "to: $salaryTo", textFontSize: textFontSize)
+                    ],
+                  )
+                ],
+              )
+            ],
+          )
         ],
       ),
+    );
+  }
+}
+
+class TextWidget extends StatelessWidget {
+  const TextWidget({super.key, required this.text, required this.textFontSize});
+
+  final text;
+  final textFontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(color: AppColors.color200, fontSize: textFontSize),
     );
   }
 }

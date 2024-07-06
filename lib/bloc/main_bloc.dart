@@ -4,12 +4,19 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:web/models/area.dart';
 
 import 'package:web/models/parameters.dart';
 import 'package:web/models/salary.dart';
 
 class MainBloc {
+  final BehaviorSubject<PageStateNumber> pageSubject =
+      BehaviorSubject.seeded(PageStateNumber.first);
+  Stream<ListWidgetState> observeListWidgetState() => stateSubject;
+
+  // final nameControllerSubject = BehaviorSubject<String>.seeded('');
   final nameControllerSubject = BehaviorSubject<String>.seeded('');
+
   final regionControllerSubject = BehaviorSubject<String>.seeded('');
   final salaryControllerSubject = BehaviorSubject<String>.seeded('');
 
@@ -18,8 +25,6 @@ class MainBloc {
   // Храним текущее состояние результатов поиска
   final BehaviorSubject<ListWidgetState> stateSubject =
       BehaviorSubject.seeded(ListWidgetState.nothing);
-  final BehaviorSubject<PageStateNumber> pageSubject =
-      BehaviorSubject.seeded(PageStateNumber.first);
 
   // Храним здесь то, что получили от сервера(список со словарями)
   final searchResultSubject = BehaviorSubject<List>();
@@ -29,34 +34,45 @@ class MainBloc {
   StreamSubscription? searchSubscriprion;
   StreamSubscription? filtresSubscription;
 
-  Stream<ListWidgetState> observeListWidgetState() => stateSubject;
   Stream<PageStateNumber> observePageState() => pageSubject;
   Stream observeSearchResults() => searchResultSubject;
 
   MainBloc() {
     filtresSubscription = Rx.combineLatest4(
-        searchTextSubjects.debounceTime(Duration(milliseconds: 1000)),
-        nameControllerSubject.debounceTime(Duration(milliseconds: 800)),
-        regionControllerSubject.debounceTime(Duration(milliseconds: 800)),
-        salaryControllerSubject.debounceTime(Duration(milliseconds: 800)),
+        searchTextSubjects.debounceTime(Duration(milliseconds: 500)),
+        nameControllerSubject.distinct(),
+        regionControllerSubject.distinct(),
+        salaryControllerSubject.distinct(),
         (searchText, name, region, salary) => FiltersInfo(
             searchText: searchText,
             name: name,
             region: region,
             salary: salary)).listen((value) {
       if (value.searchText != "") {
+        print("NAME: ${value.name}");
+        print("REGION: ${value.region}");
+        print("SALARY: ${value.salary}");
+
         searchForResultWithFilters(
-            value.searchText, value.region, value.salary, value.name);
+            text: value.searchText,
+            region: value.region,
+            salary: value.salary,
+            name: value.name);
       }
     });
   }
-  void searchForResultWithFilters(final String text, final String region,
-      final String salary, final String name) {
+  void searchForResultWithFilters(
+      {required String text,
+      required String region,
+      required String salary,
+      required String name}) {
     if (text != '') {
       stateSubject.add(ListWidgetState.loading);
       searchSubscriprion?.cancel();
-      searchSubscriprion =
-          searchWithFilters(text, region, salary, name).asStream().listen(
+      searchSubscriprion = searchWithFilters(
+              text: text, region: region, name: name, salary: salary)
+          .asStream()
+          .listen(
         (searchResult) {
           searchResultSubject.add(searchResult.toList());
           print("Good");
@@ -82,12 +98,19 @@ class MainBloc {
     }
   }
 
-  Future searchWithFilters(final String text, final String region,
-      final String salary, final String name) async {
-    print("NAME: $name");
+  Future searchWithFilters({
+    required String text,
+    required String region,
+    required String salary,
+    required String name,
+  }) async {
     var headers = {'Content-Type': 'application/json'};
-    var data =
-        json.encode({"text": text, "name": "$name", "area": "1", "salary": ""});
+    var data = json.encode({
+      "text": text,
+      "name": "$name",
+      "area": "$region",
+      'salary': "$salary"
+    });
     var dio = Dio();
 
     var response = await dio.request(
@@ -106,53 +129,8 @@ class MainBloc {
     final List<dynamic> found = parameters.map((parameter) {
       return ParametersInfo.fromParameters(parameter);
     }).toList();
-    // print(found);
     return found;
   }
-
-  // void searchForResult(final String text) {
-  //   if (text != '') {
-  //     stateSubject.add(ListWidgetState.loading);
-
-  //     searchSubscriprion = search(text).asStream().listen(
-  //       (searchResult) {
-  //         searchResultSubject.add(searchResult.toList());
-  //         print("Good");
-  //         stateSubject.add(ListWidgetState.list);
-  //       },
-  //       onError: (error, stackTrace) {
-  //         print("Error");
-  //         print(error);
-  //         stateSubject.add(ListWidgetState.error);
-  //       },
-  //     );
-  //   }
-  // }
-
-  // Future search(final String searchText) async {
-  //   print('request');
-  //   var headers = {'Content-Type': 'application/json'};
-  //   var data = json.encode({"text": "$searchText"});
-  //   var dio = Dio();
-  //   var response = await dio.request(
-  //     'http://127.0.0.1:5000/text/',
-  //     options: Options(
-  //       method: 'POST',
-  //       headers: headers,
-  //     ),
-  //     data: data,
-  //   );
-
-  //   final List<dynamic> parameters = response.data
-  //       .map((rawParameters) => Parameters.fromJson(rawParameters))
-  //       .toList();
-
-  //   final List<dynamic> found = parameters.map((parameter) {
-  //     return ParametersInfo.fromParameters(parameter);
-  //   }).toList();
-
-  //   return found;
-  // }
 
   void dispose() {
     searchTextSubjects.close();
@@ -160,10 +138,10 @@ class MainBloc {
 }
 
 class FiltersInfo {
-  final String searchText;
-  final String name;
-  final String region;
-  final String salary;
+  final searchText;
+  final name;
+  final region;
+  final salary;
 
   FiltersInfo(
       {required this.searchText,
@@ -202,6 +180,12 @@ enum PageStateNumber {
   second,
 }
 
+enum CheckBoxes {
+  salary,
+  region,
+  name,
+}
+
 class ParametersInfo {
   final String name;
   final int id;
@@ -225,19 +209,16 @@ class ParametersInfo {
   }
 
   @override
-  String toString() {
-    return 'ParametersInfo{id: $id, name: $name, salary: $salary, area: $area';
-  }
-
-  @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ParametersInfo &&
           runtimeType == other.runtimeType &&
           name == other.name &&
-          area == other.area &&
-          id == other.id;
+          id == other.id &&
+          salary == other.salary &&
+          area == other.area;
 
   @override
-  int get hashCode => name.hashCode ^ id.hashCode;
+  int get hashCode =>
+      name.hashCode ^ id.hashCode ^ salary.hashCode ^ area.hashCode;
 }
